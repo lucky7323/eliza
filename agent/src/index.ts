@@ -369,6 +369,7 @@ async function handlePluginImporting(plugins: string[]) {
                         plugin
                             .replace("@elizaos/plugin-", "")
                             .replace("@elizaos-plugins/plugin-", "")
+                            .replace("@elizaos-plugins/client-", "")
                             .replace(/-./g, (x) => x[1].toUpperCase()) +
                         "Plugin"; // Assumes plugin function is camelCased with Plugin suffix
                     return (
