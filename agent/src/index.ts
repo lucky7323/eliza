@@ -1,4 +1,5 @@
 import { DirectClient } from "@elizaos/client-direct";
+import { TelegramClientInterface } from "@elizaos/client-telegram";
 import {
     type Adapter,
     AgentRuntime,
@@ -368,6 +369,7 @@ async function handlePluginImporting(plugins: string[]) {
                     const functionName =
                         plugin
                             .replace("@elizaos/plugin-", "")
+                            .replace("@elizaos/client-", "")
                             .replace("@elizaos-plugins/plugin-", "")
                             .replace("@elizaos-plugins/client-", "")
                             .replace(/-./g, (x) => x[1].toUpperCase()) +
@@ -594,6 +596,13 @@ export async function initializeClients(
                 }
             }
         }
+    }
+
+    // for telegram demo
+    if (character.clients?.length === 1 && character.clients[0] === "telegram") {
+        const telegramClient = await TelegramClientInterface.start(runtime);
+        clients.push(telegramClient);
+        elizaLogger.info("Initializing telegram client")
     }
 
     return clients;
