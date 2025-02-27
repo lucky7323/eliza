@@ -1,6 +1,6 @@
 import { DirectClient } from "@elizaos/client-direct";
 import { TelegramClientInterface } from "@elizaos/client-telegram";
-import { PostgresDatabaseAdapter } from "@elizaos/adapter-postgres";
+import { PostgresDatabaseAdapter } from "@lucky7323/adapter-postgres";
 import {
     type Adapter,
     AgentRuntime,
