@@ -1,5 +1,6 @@
 import { DirectClient } from "@elizaos/client-direct";
 import { TelegramClientInterface } from "@elizaos/client-telegram";
+import { PostgresDatabaseAdapter } from "@elizaos/adapter-postgres";
 import {
     type Adapter,
     AgentRuntime,
@@ -703,24 +704,44 @@ function initializeCache(
 }
 
 async function findDatabaseAdapter(runtime: AgentRuntime) {
-  const { adapters } = runtime;
-  let adapter: Adapter | undefined;
-  // if not found, default to sqlite
-  if (adapters.length === 0) {
-    const sqliteAdapterPlugin = await import('@elizaos-plugins/adapter-sqlite');
-    const sqliteAdapterPluginDefault = sqliteAdapterPlugin.default;
-    adapter = sqliteAdapterPluginDefault.adapters[0];
-    if (!adapter) {
-      throw new Error("Internal error: No database adapter found for default adapter-sqlite");
-    }
-  } else if (adapters.length === 1) {
-    adapter = adapters[0];
-  } else {
-    throw new Error("Multiple database adapters found. You must have no more than one. Adjust your plugins configuration.");
-    }
-  const adapterInterface = adapter?.init(runtime);
-  return adapterInterface;
-}
+    const { adapters } = runtime;
+    let adapter: Adapter | undefined;
+    // if not found, default to sqlite
+    if (adapters.length === 0) {
+      elizaLogger.info("Initializing PostgreSQL connection...");
+      const db = new PostgresDatabaseAdapter({
+        connectionString: process.env.POSTGRES_URL,
+        parseInputs: true,
+      });
+  
+      // Test the connection
+      db.init()
+         .then(() => {
+             elizaLogger.success(
+                "Successfully connected to PostgreSQL database"
+             );
+         })
+         .catch((error) => {
+             elizaLogger.error("Failed to connect to PostgreSQL:", error);
+         });
+  
+      //const postgresPlugin = await import('@elizaos/adapter-postgres');
+      //const postgresAdapterDefault = postgresPlugin.default;
+      //elizaLogger.info(postgresAdapterDefault);
+      //elizaLogger.info(postgresPlugin);
+      //elizaLogger.info(postgresPlugin.name);
+      adapter = db;
+      if (!adapter) {
+        throw new Error("Internal error: No database adapter found for default adapter-postgres");
+      }
+    } else if (adapters.length === 1) {
+      adapter = adapters[0];
+    } else {
+      throw new Error("Multiple database adapters found. You must have no more than one. Adjust your plugins configuration.");
+      }
+    
+    return adapter;
+  }
 
 async function startAgent(
     character: Character,
@@ -738,11 +759,11 @@ async function startAgent(
             token
         );
 
-        // initialize database
-        // find a db from the plugins
-        db = await findDatabaseAdapter(runtime);
-        runtime.databaseAdapter = db;
+        db = await findDatabaseAdapter(runtime) as IDatabaseAdapter &
+            IDatabaseCacheAdapter;
+        await db?.init();
 
+        runtime.databaseAdapter = db;         
         // initialize cache
         const cache = initializeCache(
             process.env.CACHE_STORE ?? CacheStore.DATABASE,
